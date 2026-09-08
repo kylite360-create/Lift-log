@@ -76,10 +76,12 @@
   .corner-backup-link{
     position:absolute; top:calc(env(safe-area-inset-top) + 28px); right:20px;
     background:none; border:none; color:var(--text-faint);
-    font-size:12px; font-family:var(--font-body);
-    padding:8px; text-decoration:underline;
+    padding:10px;
+    display:flex; align-items:center; justify-content:center;
+    width:40px; height:40px;
     z-index:5;
   }
+  .corner-backup-link svg{ width:22px; height:22px; }
   .home-header{ text-align:center; margin-bottom:10px; }
   .home-icon{
     width:88px; height:88px; object-fit:contain;
@@ -121,20 +123,20 @@
   }
   .backup-row{
     display:flex; align-items:center; justify-content:center;
-    gap:10px; margin-top:16px;
+    gap:10px; margin-top:22px;
   }
   .backup-link{
-    background:none; border:1.5px solid transparent; color:var(--text-faint);
-    font-size:13px; font-family:var(--font-body);
-    padding:8px 10px; text-decoration:underline;
-    border-radius:8px;
+    background:none; border:1.5px solid transparent; color:var(--text-dim);
+    font-size:16px; font-weight:600; font-family:var(--font-body);
+    padding:12px 14px; text-decoration:underline;
+    border-radius:10px;
   }
   .backup-link.armed{
     color:var(--text); text-decoration:none;
     border-color:var(--border); background:var(--panel-2);
-    font-weight:600;
+    font-weight:700;
   }
-  .backup-sep{ color:var(--text-faint); font-size:13px; }
+  .backup-sep{ color:var(--text-faint); font-size:16px; }
 
   /* ===== BACKUP MENU MODAL ===== */
   #backup-overlay{
@@ -327,7 +329,13 @@
 
   <!-- HOME -->
   <div class="screen active" id="home">
-    <button class="corner-backup-link" id="corner-backup-link">Backup</button>
+    <button class="corner-backup-link" id="corner-backup-link" aria-label="Backup and export">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 18a4.5 4.5 0 0 1-1-8.87A5 5 0 0 1 15.5 7h.5a4 4 0 0 1 1 7.87"/>
+        <path d="M12 11v8"/>
+        <path d="M9 16l3 3 3-3"/>
+      </svg>
+    </button>
     <div class="home-header">
       <img src="home-icon.png" alt="" class="home-icon">
       <h1>Lift Log</h1>
