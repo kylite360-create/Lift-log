@@ -139,21 +139,23 @@
   /* ===== BACKUP MENU MODAL ===== */
   #backup-overlay{
     position:fixed; inset:0; background:rgba(6,7,9,0.92);
-    display:none; align-items:flex-end; z-index:50;
-    overflow:hidden;
+    display:none; align-items:center; justify-content:center; z-index:50;
+    overflow:hidden; padding:24px;
   }
   #backup-overlay.active{ display:flex; }
   #backup-sheet{
-    background:var(--panel); width:100%;
-    border-radius:20px 20px 0 0;
-    padding:18px 20px calc(28px + env(safe-area-inset-bottom));
+    background:var(--panel); width:100%; max-width:360px;
+    border-radius:20px;
+    padding:28px 24px 24px;
     position:relative;
   }
   #backup-sheet h2{
     font-family:var(--font-display); font-size:23px; margin:0 0 6px;
+    text-align:center;
   }
   .backup-sheet-hint{
     font-size:13px; color:var(--text-dim); margin:0;
+    text-align:center;
   }
 
   /* ===== DAY SCREEN ===== */
@@ -358,11 +360,10 @@
     <input type="file" id="restore-file-input" accept="application/json" style="display:none">
   </div>
 
-  <!-- BACKUP MENU SHEET -->
+  <!-- BACKUP MENU MODAL -->
   <div id="backup-overlay">
     <div id="backup-sheet">
       <button class="close-sheet" id="close-backup-sheet">&#10005;</button>
-      <div class="sheet-handle"></div>
       <h2>Backup &amp; export</h2>
       <p class="backup-sheet-hint">Tap once to select, tap again to confirm.</p>
       <div class="backup-row">
