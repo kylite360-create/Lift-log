@@ -12,6 +12,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Lift Log</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#0A0B0D;
@@ -111,6 +112,22 @@
     text-align:center; font-size:13px; color:var(--text-faint);
     margin-top:8px; letter-spacing:0.3px;
   }
+  .backup-row{
+    display:flex; align-items:center; justify-content:center;
+    gap:10px; margin-top:20px;
+  }
+  .backup-link{
+    background:none; border:1.5px solid transparent; color:var(--text-faint);
+    font-size:13px; font-family:var(--font-body);
+    padding:8px 10px; text-decoration:underline;
+    border-radius:8px;
+  }
+  .backup-link.armed{
+    color:var(--c-armed, var(--text)); text-decoration:none;
+    border-color:var(--border); background:var(--panel-2);
+    font-weight:600;
+  }
+  .backup-sep{ color:var(--text-faint); font-size:13px; }
 
   /* ===== DAY SCREEN ===== */
   #day-list{ padding:4px 16px 40px; flex:1; overflow-y:auto; }
@@ -310,6 +327,14 @@
       <span class="chev">&#8250;</span>
     </button>
     <div class="schedule-note">Push &rarr; Pull &rarr; Legs &rarr; Rest &rarr; Repeat</div>
+    <div class="backup-row">
+      <button class="backup-link" id="backup-btn">Backup</button>
+      <span class="backup-sep">&middot;</span>
+      <button class="backup-link" id="restore-btn">Restore</button>
+      <span class="backup-sep">&middot;</span>
+      <button class="backup-link" id="export-excel-btn">Excel</button>
+    </div>
+    <input type="file" id="restore-file-input" accept="application/json" style="display:none">
   </div>
 
   <!-- DAY SCREEN -->
@@ -395,6 +420,90 @@
   function saveData(){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
     catch(e){}
+  }
+
+  function backupData(){
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "lift-log-backup-" + todayStr() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function restoreData(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var parsed = JSON.parse(e.target.result);
+        if(!parsed || typeof parsed !== "object" || typeof parsed.history !== "object"){
+          alert("That file doesn't look like a Lift Log backup.");
+          return;
+        }
+        data = parsed;
+        saveData();
+        alert("Backup restored.");
+        renderHomeMeta();
+        showScreen("home");
+      }catch(err){
+        alert("Couldn't read that file. Make sure it's a Lift Log backup .json file.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function exerciseDisplayName(exId){
+    for(var day in ROUTINE){
+      var found = ROUTINE[day].exercises.find(function(ex){ return ex.id === exId; });
+      if(found) return found.name;
+    }
+    return exId;
+  }
+
+  function exportToExcel(){
+    if(typeof XLSX === "undefined"){
+      alert("Excel export isn't available right now — check your internet connection and try again.");
+      return;
+    }
+    var rows = [];
+    Object.keys(data.history).forEach(function(exId){
+      var displayName = exerciseDisplayName(exId);
+      data.history[exId].forEach(function(session){
+        session.sets.forEach(function(set, idx){
+          rows.push({
+            date: session.date,
+            exercise: displayName,
+            setNumber: idx + 1,
+            reps: set.reps,
+            weight: (set.weight === null || set.weight === undefined) ? "" : set.weight
+          });
+        });
+      });
+    });
+
+    if(rows.length === 0){
+      alert("No logged sets yet — nothing to export.");
+      return;
+    }
+
+    rows.sort(function(a, b){
+      if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+      if(a.exercise !== b.exercise) return a.exercise < b.exercise ? -1 : 1;
+      return a.setNumber - b.setNumber;
+    });
+
+    var sheetData = [["Date", "Exercise", "Set", "Reps", "Weight (lb)"]];
+    rows.forEach(function(r){
+      sheetData.push([r.date, r.exercise, r.setNumber, r.reps, r.weight]);
+    });
+    var ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 6 }, { wch: 8 }, { wch: 12 }];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Lift Log Data");
+    XLSX.writeFile(wb, "lift-log-" + todayStr() + ".xlsx");
   }
 
   function todayStr(){
@@ -680,6 +789,44 @@
     });
     saveData();
     showScreen("home");
+  });
+
+  // Tap-to-arm, tap-again-to-confirm for Backup/Restore/Excel — first tap
+  // just highlights the button, second tap on the SAME button performs the
+  // action. Tapping any other button (or elsewhere) disarms without acting.
+  function setupArmedButton(btn, onConfirm){
+    btn.addEventListener("click", function(e){
+      var wasArmed = btn.classList.contains("armed");
+      document.querySelectorAll(".backup-link.armed").forEach(function(b){
+        b.classList.remove("armed");
+      });
+      if(wasArmed){
+        onConfirm(e);
+      } else {
+        btn.classList.add("armed");
+      }
+    });
+  }
+
+  setupArmedButton(document.getElementById("backup-btn"), function(){
+    backupData();
+  });
+
+  setupArmedButton(document.getElementById("restore-btn"), function(){
+    document.getElementById("restore-file-input").click();
+  });
+
+  document.getElementById("restore-file-input").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    if(confirm("This will replace your current history with the backup file. Continue?")){
+      restoreData(file);
+    }
+    e.target.value = "";
+  });
+
+  setupArmedButton(document.getElementById("export-excel-btn"), function(){
+    exportToExcel();
   });
 
   renderHomeMeta();
