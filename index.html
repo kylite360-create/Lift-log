@@ -278,14 +278,14 @@
     margin-bottom:8px; display:block;
   }
   .history-sets{
-    display:flex; flex-wrap:wrap; gap:8px;
+    display:flex; flex-direction:column; align-items:flex-start; gap:8px;
   }
   .history-chip{
     background:var(--panel-2); border:1.5px solid transparent;
     border-radius:10px;
     padding:7px 12px; font-size:14px; font-family:var(--font-mono);
     color:var(--text);
-    display:flex; align-items:center; gap:8px;
+    display:inline-flex; align-items:center; gap:8px;
     min-height:40px;
   }
   .history-chip .chip-delete{
@@ -621,9 +621,7 @@
       addBtn.textContent = "+ Add set";
       addBtn.addEventListener("click", function(){
         var currentCount = grid.querySelectorAll(".set-row").length;
-        grid.insertBefore(makeSetRow(currentCount+1), addBtn.previousSibling===null?null:null);
         grid.appendChild(makeSetRow(currentCount+1));
-        addBtn.remove();
       });
       card.appendChild(addBtn);
 
