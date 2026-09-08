@@ -72,7 +72,14 @@
   }
 
   /* ===== HOME ===== */
-  #home{ justify-content:center; padding:24px; gap:18px; }
+  #home{ justify-content:center; padding:24px; gap:18px; position:relative; }
+  .corner-backup-link{
+    position:absolute; top:calc(env(safe-area-inset-top) + 16px); right:20px;
+    background:none; border:none; color:var(--text-faint);
+    font-size:12px; font-family:var(--font-body);
+    padding:8px; text-decoration:underline;
+    z-index:5;
+  }
   .home-header{ text-align:center; margin-bottom:10px; }
   .home-icon{
     width:88px; height:88px; object-fit:contain;
@@ -114,7 +121,7 @@
   }
   .backup-row{
     display:flex; align-items:center; justify-content:center;
-    gap:10px; margin-top:20px;
+    gap:10px; margin-top:16px;
   }
   .backup-link{
     background:none; border:1.5px solid transparent; color:var(--text-faint);
@@ -123,11 +130,31 @@
     border-radius:8px;
   }
   .backup-link.armed{
-    color:var(--c-armed, var(--text)); text-decoration:none;
+    color:var(--text); text-decoration:none;
     border-color:var(--border); background:var(--panel-2);
     font-weight:600;
   }
   .backup-sep{ color:var(--text-faint); font-size:13px; }
+
+  /* ===== BACKUP MENU MODAL ===== */
+  #backup-overlay{
+    position:fixed; inset:0; background:rgba(6,7,9,0.92);
+    display:none; align-items:flex-end; z-index:50;
+    overflow:hidden;
+  }
+  #backup-overlay.active{ display:flex; }
+  #backup-sheet{
+    background:var(--panel); width:100%;
+    border-radius:20px 20px 0 0;
+    padding:18px 20px calc(28px + env(safe-area-inset-bottom));
+    position:relative;
+  }
+  #backup-sheet h2{
+    font-family:var(--font-display); font-size:23px; margin:0 0 6px;
+  }
+  .backup-sheet-hint{
+    font-size:13px; color:var(--text-dim); margin:0;
+  }
 
   /* ===== DAY SCREEN ===== */
   #day-list{ padding:4px 16px 40px; flex:1; overflow-y:auto; }
@@ -298,6 +325,7 @@
 
   <!-- HOME -->
   <div class="screen active" id="home">
+    <button class="corner-backup-link" id="corner-backup-link">Backup</button>
     <div class="home-header">
       <img src="home-icon.png" alt="" class="home-icon">
       <h1>Lift Log</h1>
@@ -327,14 +355,24 @@
       <span class="chev">&#8250;</span>
     </button>
     <div class="schedule-note">Push &rarr; Pull &rarr; Legs &rarr; Rest &rarr; Repeat</div>
-    <div class="backup-row">
-      <button class="backup-link" id="backup-btn">Backup</button>
-      <span class="backup-sep">&middot;</span>
-      <button class="backup-link" id="restore-btn">Restore</button>
-      <span class="backup-sep">&middot;</span>
-      <button class="backup-link" id="export-excel-btn">Excel</button>
-    </div>
     <input type="file" id="restore-file-input" accept="application/json" style="display:none">
+  </div>
+
+  <!-- BACKUP MENU SHEET -->
+  <div id="backup-overlay">
+    <div id="backup-sheet">
+      <button class="close-sheet" id="close-backup-sheet">&#10005;</button>
+      <div class="sheet-handle"></div>
+      <h2>Backup &amp; export</h2>
+      <p class="backup-sheet-hint">Tap once to select, tap again to confirm.</p>
+      <div class="backup-row">
+        <button class="backup-link" id="backup-btn">Backup</button>
+        <span class="backup-sep">&middot;</span>
+        <button class="backup-link" id="restore-btn">Restore</button>
+        <span class="backup-sep">&middot;</span>
+        <button class="backup-link" id="export-excel-btn">Excel</button>
+      </div>
+    </div>
   </div>
 
   <!-- DAY SCREEN -->
@@ -827,6 +865,23 @@
 
   setupArmedButton(document.getElementById("export-excel-btn"), function(){
     exportToExcel();
+  });
+
+  function openBackupSheet(){
+    document.getElementById("backup-overlay").classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+  function closeBackupSheet(){
+    document.getElementById("backup-overlay").classList.remove("active");
+    document.body.style.overflow = "";
+    document.querySelectorAll(".backup-link.armed").forEach(function(b){
+      b.classList.remove("armed");
+    });
+  }
+  document.getElementById("corner-backup-link").addEventListener("click", openBackupSheet);
+  document.getElementById("close-backup-sheet").addEventListener("click", closeBackupSheet);
+  document.getElementById("backup-overlay").addEventListener("click", function(e){
+    if(e.target.id === "backup-overlay") closeBackupSheet();
   });
 
   renderHomeMeta();
