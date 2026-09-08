@@ -219,9 +219,13 @@
     padding:12px 0; border-bottom:1px solid var(--border);
   }
   .history-entry:last-child{ border-bottom:none; }
+  .history-date-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-bottom:6px;
+  }
   .history-date{
     font-size:11px; color:var(--text-faint); text-transform:uppercase;
-    letter-spacing:0.8px; margin-bottom:6px;
+    letter-spacing:0.8px;
   }
   .history-sets{
     display:flex; flex-wrap:wrap; gap:6px;
@@ -239,6 +243,16 @@
     width:30px; height:30px; border-radius:50%;
     background:var(--panel-2); border:1px solid var(--border);
     color:var(--text-dim); font-size:15px;
+  }
+  .delete-entry-btn{
+    background:none; border:1px solid var(--border);
+    color:var(--text-faint); font-size:11px; font-family:var(--font-body);
+    border-radius:8px; padding:5px 10px; flex-shrink:0;
+    display:none;
+  }
+  .history-entry.revealed .delete-entry-btn{ display:block; }
+  .delete-entry-btn.confirm{
+    background:#E24B4A; border-color:#E24B4A; color:#101216; font-weight:600;
   }
 
   ::-webkit-scrollbar{ display:none; }
@@ -508,24 +522,68 @@
   }
 
   // ---------- history sheet ----------
+  var currentHistoryExId = null;
+
   function openHistory(exId, name){
+    currentHistoryExId = exId;
     document.getElementById("history-title").textContent = name;
+    renderHistoryBody(exId);
+    document.getElementById("history-overlay").classList.add("active");
+  }
+
+  function renderHistoryBody(exId){
     var body = document.getElementById("history-body");
     var h = data.history[exId];
     if(!h || h.length===0){
       body.innerHTML = '<div class="history-empty">No sessions logged yet</div>';
-    } else {
-      var sorted = h.slice().reverse();
-      body.innerHTML = sorted.map(function(entry){
-        var chips = entry.sets.map(function(s, idx){
-          var label = (s.weight!==null) ? (s.reps+" &times; "+s.weight+"lb") : (s.reps+" reps");
-          return '<span class="history-chip">Set '+(idx+1)+': '+label+'</span>';
-        }).join("");
-        return '<div class="history-entry"><div class="history-date">'+formatDateLabel(entry.date)+'</div>'+
-               '<div class="history-sets">'+chips+'</div></div>';
-      }).join("");
+      return;
     }
-    document.getElementById("history-overlay").classList.add("active");
+    var sorted = h.slice().reverse();
+    body.innerHTML = sorted.map(function(entry){
+      var chips = entry.sets.map(function(s, idx){
+        var label = (s.weight!==null) ? (s.reps+" &times; "+s.weight+"lb") : (s.reps+" reps");
+        return '<span class="history-chip">Set '+(idx+1)+': '+label+'</span>';
+      }).join("");
+      return '<div class="history-entry" data-date="'+entry.date+'">'+
+             '<div class="history-date-row">'+
+             '<span class="history-date">'+formatDateLabel(entry.date)+'</span>'+
+             '<button class="delete-entry-btn">Delete</button>'+
+             '</div>'+
+             '<div class="history-sets">'+chips+'</div></div>';
+    }).join("");
+
+    body.querySelectorAll(".history-entry").forEach(function(entryEl){
+      var dateRow = entryEl.querySelector(".history-date-row");
+      var delBtn = entryEl.querySelector(".delete-entry-btn");
+
+      dateRow.addEventListener("click", function(e){
+        if(e.target === delBtn) return;
+        var wasRevealed = entryEl.classList.contains("revealed");
+        body.querySelectorAll(".history-entry.revealed").forEach(function(el){
+          el.classList.remove("revealed");
+          var b = el.querySelector(".delete-entry-btn");
+          b.classList.remove("confirm");
+          b.textContent = "Delete";
+        });
+        if(!wasRevealed) entryEl.classList.add("revealed");
+      });
+
+      delBtn.addEventListener("click", function(e){
+        e.stopPropagation();
+        if(!delBtn.classList.contains("confirm")){
+          delBtn.classList.add("confirm");
+          delBtn.textContent = "Confirm";
+          return;
+        }
+        var dateToRemove = entryEl.dataset.date;
+        data.history[exId] = data.history[exId].filter(function(s){
+          return s.date !== dateToRemove;
+        });
+        saveData();
+        renderHistoryBody(exId);
+        if(currentDay) openDay(currentDay);
+      });
+    });
   }
 
   document.getElementById("close-history").addEventListener("click", function(){
@@ -534,6 +592,7 @@
   document.getElementById("history-overlay").addEventListener("click", function(e){
     if(e.target.id==="history-overlay") e.currentTarget.classList.remove("active");
   });
+
 
   // ---------- navigation ----------
   function showScreen(id){
